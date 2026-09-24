@@ -116,7 +116,6 @@ class_names = [
 
 flowers_train_images = flowers_train_images.astype("float32") / 255.0
 flowers_test_images = flowers_test_images.astype("float32") / 255.0
-
 # ============================================================
 # 5. BUILD IMPROVED CNN MODEL
 # ============================================================
