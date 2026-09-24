@@ -117,21 +117,31 @@ class_names = [
 flowers_train_images = flowers_train_images.astype("float32") / 255.0
 flowers_test_images = flowers_test_images.astype("float32") / 255.0
 
-
 # ============================================================
 # 5. BUILD IMPROVED CNN MODEL
 # ============================================================
 
+from tensorflow.keras import layers
+
 model = tf.keras.Sequential([
-    
-    # First convolution block
-    Conv2D(
-        32,
-        kernel_size=(3, 3),
-        activation="relu",
-        padding="same",
-        input_shape=(32, 32, 3)
-    ),
+
+    # --------------------------------------------------------
+    # INPUT
+    # --------------------------------------------------------
+
+    tf.keras.Input(shape=(32, 32, 3)),
+
+    # --------------------------------------------------------
+    # DATA AUGMENTATION
+    # --------------------------------------------------------
+
+    layers.RandomFlip("horizontal"),
+    layers.RandomRotation(0.1),
+    layers.RandomTranslation(0.1, 0.1),
+
+    # --------------------------------------------------------
+    # FIRST CONVOLUTION BLOCK
+    # --------------------------------------------------------
 
     Conv2D(
         32,
@@ -140,27 +150,16 @@ model = tf.keras.Sequential([
         padding="same"
     ),
 
-    MaxPooling2D(
-        pool_size=(2, 2)
-    ),
+    layers.BatchNormalization(),
 
-    Dropout(0.25),
-
-
-    # Second convolution block
     Conv2D(
-        64,
+        32,
         kernel_size=(3, 3),
         activation="relu",
         padding="same"
     ),
 
-    Conv2D(
-        64,
-        kernel_size=(3, 3),
-        activation="relu",
-        padding="same"
-    ),
+    layers.BatchNormalization(),
 
     MaxPooling2D(
         pool_size=(2, 2)
@@ -168,16 +167,63 @@ model = tf.keras.Sequential([
 
     Dropout(0.25),
 
+    # --------------------------------------------------------
+    # SECOND CONVOLUTION BLOCK
+    # --------------------------------------------------------
 
-    # Classification section
-    Flatten(),
+    Conv2D(
+        64,
+        kernel_size=(3, 3),
+        activation="relu",
+        padding="same"
+    ),
+
+    layers.BatchNormalization(),
+
+    Conv2D(
+        64,
+        kernel_size=(3, 3),
+        activation="relu",
+        padding="same"
+    ),
+
+    layers.BatchNormalization(),
+
+    MaxPooling2D(
+        pool_size=(2, 2)
+    ),
+
+    Dropout(0.30),
+
+    # --------------------------------------------------------
+    # THIRD CONVOLUTION BLOCK
+    # --------------------------------------------------------
+
+    Conv2D(
+        128,
+        kernel_size=(3, 3),
+        activation="relu",
+        padding="same"
+    ),
+
+    layers.BatchNormalization(),
+
+    # --------------------------------------------------------
+    # GLOBAL AVERAGE POOLING
+    # --------------------------------------------------------
+
+    layers.GlobalAveragePooling2D(),
+
+    # --------------------------------------------------------
+    # CLASSIFICATION
+    # --------------------------------------------------------
 
     Dense(
         128,
         activation="relu"
     ),
 
-    Dropout(0.5),
+    Dropout(0.50),
 
     Dense(
         5,
@@ -199,7 +245,9 @@ model.summary()
 # ============================================================
 
 model.compile(
-    optimizer="adam",
+    optimizer=tf.keras.optimizers.Adam(
+        learning_rate=0.001
+    ),
     loss="sparse_categorical_crossentropy",
     metrics=[
         tf.keras.metrics.SparseCategoricalAccuracy()
@@ -303,3 +351,27 @@ print("========================================")
 print("Test loss:", test_loss)
 print("Test accuracy:", test_acc)
 print("Test accuracy percentage:", test_acc * 100, "%")
+
+
+# ============================================================
+# 12. CLASSIFICATION REPORT
+# ============================================================
+
+from sklearn.metrics import classification_report
+
+predictions = model.predict(flowers_test_images)
+
+predicted_labels = np.argmax(
+    predictions,
+    axis=1
+)
+
+print("\nClassification Report:")
+
+print(
+    classification_report(
+        flowers_test_labels,
+        predicted_labels,
+        target_names=class_names
+    )
+)
